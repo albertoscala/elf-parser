@@ -40,6 +40,7 @@ namespace elf_header
     {
         ELFOSABI_SYSV = 0,          // System V ABI
         ELFOSABI_HPUX = 1,          // HP-UX operating system
+        ELFOSABI_GNU = 3,           // GNU/Linux
         ELFOSABI_STANDALONE = 255,  // Standalone (embedded) application
     };
 
@@ -64,6 +65,7 @@ namespace elf_header
             {
                 case ELF_Class::ELFCLASS32: return "ELFCLASS32";
                 case ELF_Class::ELFCLASS64: return "ELFCLASS64";
+                default: return "Unknown";
             }
         }
 
@@ -73,6 +75,7 @@ namespace elf_header
             {
                 case ELF_Data_Encoding::ELFDATA2LSB: return "ELFDATA2LSB";
                 case ELF_Data_Encoding::ELFDATA2MSB: return "ELFDATA2MSB";
+                default: return "Unknown";
             }
         }
 
@@ -82,7 +85,9 @@ namespace elf_header
             {
                 case ELF_OSABI_Identifier::ELFOSABI_SYSV: return "ELFOSABI_SYSV";
                 case ELF_OSABI_Identifier::ELFOSABI_HPUX: return "ELFOSABI_HPUX";
+                case ELF_OSABI_Identifier::ELFOSABI_GNU: return "ELFOSABI_GNU";
                 case ELF_OSABI_Identifier::ELFOSABI_STANDALONE: return "ELFOSABI_STANDALONE"; 
+                default: return "Unknown";
             }
         }
 
@@ -99,6 +104,7 @@ namespace elf_header
                 case ELF_Object_File_Type::ET_HIOS: return "ET_HIOS";
                 case ELF_Object_File_Type::ET_LOPROC: return "ET_LOPROC";
                 case ELF_Object_File_Type::ET_HIPROC: return "ET_HIPROC";
+                default: return "Unknown";
             }
         }
     }
@@ -191,9 +197,19 @@ namespace elf_header
 
             // Magic
             os << "  Magic:        ";
-            for (auto b : elf_header.e_ident)
-                os << std::hex << std::setw(2) << std::setfill('0')
-                << static_cast<int>(b) << " ";
+            os << std::hex << std::setw(2) << std::setfill('0') 
+                << static_cast<int>(
+                    elf_header.e_ident[static_cast<std::uint8_t>(ELF_Identification::EI_MAG0)]
+                ) << " ";
+            os  << static_cast<std::uint8_t>(
+                    elf_header.e_ident[static_cast<std::uint8_t>(ELF_Identification::EI_MAG1)]
+                ) << " ";
+            os << static_cast<std::uint8_t>(
+                    elf_header.e_ident[static_cast<std::uint8_t>(ELF_Identification::EI_MAG2)]
+                ) << " ";
+            os << static_cast<std::uint8_t>(
+                    elf_header.e_ident[static_cast<std::uint8_t>(ELF_Identification::EI_MAG3)]
+                ) << " ";
             os << "\n";
 
             // e_ident fields
