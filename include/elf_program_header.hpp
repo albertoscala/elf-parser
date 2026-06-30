@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "elf_types.hpp"
+#include "elf_header.hpp"
 
 namespace elf_program_header
 {
@@ -24,9 +25,15 @@ namespace elf_program_header
         std::vector<ELF_Program_Header> program_headers;
     public:
         ELF_Program_Header_Table() = default;
-        ELF_Program_Header_Table(std::byte* elf_file)
+        ELF_Program_Header_Table(const elf_header::ELF_Header& elf_header, std::byte* elf_file, std::size_t size)
         {
+            // const std::byte* cursor = elf_file + elf_header;
 
+            // auto read = [&](auto& field)
+            // {
+            //     std::copy(cursor, cursor + field.size(), field.data());
+            //     cursor += field.size();
+            // };
         }
     
     };

@@ -9,7 +9,7 @@
 
 namespace elf_header
 {
-    enum class ELF_Identification : std::uint8_t
+    enum class ELF_Identification : std::size_t
     {
         EI_MAG0 = 0,        // File identification
         EI_MAG1 = 1,
@@ -131,26 +131,22 @@ namespace elf_header
         {
             const std::byte* cursor = elf_file;
 
-            auto read = [&](auto& field)
-            {
-                std::copy(cursor, cursor + field.size(), field.data());
-                cursor += field.size();
-            };
+            std::copy(cursor, cursor + e_ident.size(), e_ident.data());
+            cursor += e_ident.size(); 
 
-            read(e_ident);
-            read(e_type);
-            read(e_machine);
-            read(e_version);
-            read(e_entry);
-            read(e_phoff);
-            read(e_shoff);
-            read(e_flags);
-            read(e_ehsize);
-            read(e_phentsize);
-            read(e_phnum);
-            read(e_shentsize);
-            read(e_shnum);
-            read(e_shstrndx);
+            e_type = elf_types::Elf64_Half(cursor);
+            e_machine = elf_types::Elf64_Half(cursor);
+            e_version = elf_types::Elf64_Word(cursor);
+            e_entry = elf_types::Elf64_Addr(cursor);
+            e_phoff = elf_types::Elf64_Off(cursor);
+            e_shoff = elf_types::Elf64_Off(cursor);
+            e_flags = elf_types::Elf64_Word(cursor);
+            e_ehsize = elf_types::Elf64_Half(cursor);
+            e_phentsize = elf_types::Elf64_Half(cursor);
+            e_phnum = elf_types::Elf64_Half(cursor);
+            e_shentsize = elf_types::Elf64_Half(cursor);
+            e_shnum = elf_types::Elf64_Half(cursor);
+            e_shstrndx = elf_types::Elf64_Half(cursor);
         }
     
         ~ELF_Header() = default;
@@ -158,39 +154,9 @@ namespace elf_header
         friend std::ostream& operator<<(std::ostream& os, const ELF_Header& elf_header)
         {
             // helper to index e_ident cleanly
-            auto read_ident = [&](ELF_Identification idx) -> uint8_t
+            auto read_ident = [&](ELF_Identification idx) -> std::byte
             {
-                return std::to_integer<uint8_t>(
-                    elf_header.e_ident[static_cast<std::size_t>(idx)]
-                );
-            };
-
-            // helper to read a multi-byte field as uint16_t (little-endian)
-            auto read_half = [](const elf_types::Elf64_Half& field) -> uint16_t
-            {
-                return static_cast<uint16_t>(
-                    std::to_integer<uint16_t>(field[0]) |
-                    std::to_integer<uint16_t>(field[1]) << 8
-                );
-            };
-
-            auto read_word = [](const elf_types::Elf64_Word& field) -> uint32_t
-            {
-                return static_cast<uint32_t>(
-                    std::to_integer<uint32_t>(field[0])        |
-                    std::to_integer<uint32_t>(field[1]) << 8   |
-                    std::to_integer<uint32_t>(field[2]) << 16  |
-                    std::to_integer<uint32_t>(field[3]) << 24
-                );
-            };
-
-            // helper to read a multi-byte field as uint64_t (little-endian)
-            auto read_xword = [](const elf_types::Elf64_Xword& field) -> uint64_t
-            {
-                uint64_t value = 0;
-                for (std::size_t i = 0; i < field.size(); ++i)
-                    value |= std::to_integer<uint64_t>(field[i]) << (i * 8);
-                return value;
+                return elf_header.e_ident[static_cast<std::size_t>(idx)];
             };
 
             os << "ELF Header:\n";
@@ -214,59 +180,67 @@ namespace elf_header
 
             // e_ident fields
             os << "  Class:        " << elf_class_to_string(
-                static_cast<ELF_Class>(read_ident(ELF_Identification::EI_CLASS))) << "\n";
+                static_cast<ELF_Class>(
+                    read_ident(ELF_Identification::EI_CLASS)
+                )
+            ) << "\n";
 
             os << "  Data:         " << elf_data_encoding_to_string(
-                static_cast<ELF_Data_Encoding>(read_ident(ELF_Identification::EI_DATA))) << "\n";
+                static_cast<ELF_Data_Encoding>(
+                    read_ident(ELF_Identification::EI_DATA)
+                )
+            ) << "\n";
 
             os << "  Version:      " << std::dec 
             << static_cast<int>(read_ident(ELF_Identification::EI_VERSION)) << "\n";
 
             os << "  OS/ABI:       " << elf_osabi_identifier_to_string(
-                static_cast<ELF_OSABI_Identifier>(read_ident(ELF_Identification::EI_OSABI))) << "\n";
+                static_cast<ELF_OSABI_Identifier>(read_ident(ELF_Identification::EI_OSABI))
+            )<< "\n";
 
             os << "  ABI Version:  " << std::dec 
             << static_cast<int>(read_ident(ELF_Identification::EI_ABIVERSION)) << "\n";
 
             // header fields
             os << "  Type:         " << elf_object_file_identifier_to_string(
-                static_cast<ELF_Object_File_Type>(read_half(elf_header.e_type))) << "\n";
+                static_cast<ELF_Object_File_Type>(elf_header.e_type.value())
+            ) << "\n";
 
             os << "  Machine:      " << std::hex << "0x" 
-            << read_half(elf_header.e_machine) << "\n";
+            << elf_header.e_machine.value() << "\n";
 
             os << "  Version:      " << std::dec 
-            << read_word(elf_header.e_version) << "\n";
+            << elf_header.e_version.value() << "\n";
 
             os << "  Entry point:  " << std::hex << "0x" 
-            << read_xword(elf_header.e_entry) << "\n";
+            << elf_header.e_entry.value() << "\n";
 
             os << "  PHT offset:   " << std::dec 
-            << read_xword(elf_header.e_phoff) << "\n";
+            << elf_header.e_phoff.value() << "\n";
 
             os << "  SHT offset:   " << std::dec 
-            << read_xword(elf_header.e_shoff) << "\n";
+            << elf_header.e_shoff.value() << "\n";
 
             os << "  Flags:        " << std::hex << "0x" 
-            << read_word(elf_header.e_flags) << "\n";
+            << elf_header.e_flags.value() << "\n";
 
             os << "  Header size:  " << std::dec 
-            << read_half(elf_header.e_ehsize) << " bytes\n";
+            << elf_header.e_ehsize.value() << " bytes\n";
 
             os << "  PHT entry:    " << std::dec 
-            << read_half(elf_header.e_phentsize) << " bytes\n";
+            << elf_header.e_phentsize.value() << " bytes\n";
 
             os << "  PHT count:    " << std::dec 
-            << read_half(elf_header.e_phnum) << "\n";
+            << elf_header.e_phnum.value() << "\n";
 
             os << "  SHT entry:    " << std::dec 
-            << read_half(elf_header.e_shentsize) << " bytes\n";
+            << elf_header.e_shentsize.value() << " bytes\n";
 
             os << "  SHT count:    " << std::dec 
-            << read_half(elf_header.e_shnum) << "\n";
+            << elf_header.e_shnum.value() << "\n";
 
             os << "  SHSTRTAB idx: " << std::dec 
-            << read_half(elf_header.e_shstrndx) << "\n";
+            << elf_header.e_shstrndx.value() << "\n";
 
             return os;
         }

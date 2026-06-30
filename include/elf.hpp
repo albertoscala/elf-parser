@@ -85,7 +85,7 @@ namespace elf
             header = elf_header::ELF_Header(static_cast<std::byte*>(elf_file), size);
 
             // Read ELF Program Header Table
-            //program_header_table = ELF_Program_Header_Table(static_cast<std::byte*>(elf_file));
+            //program_header_table = ELF_Program_Header_Table(header, static_cast<std::byte*>(elf_file), size);
 
             // Read ELF Section Header Table
             //section_header_table = ELF_Section_Header_Table(static_cast<std::byte*>(elf_file));
